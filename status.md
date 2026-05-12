@@ -104,6 +104,55 @@ curl -s -X POST http://localhost:8080/api/auth/logout \
 
 ---
 
+## 操作日志（AOP 切面记录）
+
+通过 `@Log` 注解 + `LogAspect` 切面，自动记录所有业务操作到 `sys_oper_log` 表。
+
+### 日志覆盖范围
+
+| 操作 | 注解位置 | BusinessType | 测试结果 |
+|------|----------|-------------|----------|
+| 登录 | `AuthController.login()` | `LOGIN` (4) | ✅ 记录成功/失败 |
+| 注销 | `AuthController.logout()` | `LOGOUT` (5) | ✅ 记录成功 |
+| 新增商品 | `ProductController.create()` | `INSERT` (1) | ✅ 记录成功 |
+| 更新商品 | `ProductController.update()` | `UPDATE` (2) | ✅ 记录成功 |
+| 删除商品 | `ProductController.delete()` | `DELETE` (3) | ✅ 记录成功 |
+
+### 日志字段说明
+
+| 字段 | 说明 |
+|------|------|
+| `title` | 模块标题（如"认证管理"、"商品管理"） |
+| `business_type` | 业务类型（0=OTHER, 1=INSERT, 2=UPDATE, 3=DELETE, 4=LOGIN, 5=LOGOUT） |
+| `oper_name` | 操作人（登录成功前为 `anonymousUser`） |
+| `oper_url` | 请求路径 |
+| `request_method` | HTTP 方法 |
+| `oper_param` | 请求参数（JSON） |
+| `json_result` | 响应结果（JSON，含统一格式 `{code, message, data}`） |
+| `status` | 状态（0=成功, 1=异常） |
+| `error_msg` | 异常信息（成功时为 NULL） |
+
+### 测试验证
+
+```sql
+-- 查看所有日志记录
+SELECT id, title, business_type, oper_name, oper_url, status, error_msg, oper_time
+FROM sys_oper_log ORDER BY id;
+```
+
+**测试结果：6 种场景全部通过**
+
+| 场景 | status | json_result |
+|------|--------|-------------|
+| 登录成功 | 0 | `{"code":200, "data":{"token":"...","username":"admin"}}` |
+| 密码错误 | 1 | error_msg = "用户不存在或密码错误" |
+| 注销 | 0 | `{"code":200, "data":null}` |
+| 新增商品 | 0 | `{"code":200, "data":{"id":100, "name":"..."}}` |
+| 更新商品 | 0 | `{"code":200, "data":{"id":1, "name":"Updated Product"}}` |
+| 删除商品 | 0 | `{"code":200, "data":null}` |
+
+---
+
 ## 模拟数据（data.sql 启动时自动插入）
 
 | ID | 名称 | 价格 | 库存 |
@@ -147,6 +196,25 @@ curl -s -X POST http://localhost:8080/api/auth/logout \
 - 商品 CRUD（增删改查 + 异常场景）完整验证通过
 - 日志 AOP 切面随 CRUD 操作自动触发
 - 模拟数据 5 条，自增值隔离，不影响用户新增
+- 事务管理覆盖商品所有写操作
+
+---
+
+## 事务覆盖范围
+
+| 类 | 方法 | 事务配置 |
+|----|------|---------|
+| `ProductServiceImpl` | 类级别 | `@Transactional(rollbackFor = Exception.class)` |
+| | `listProducts` | `@Transactional(readOnly = true)` |
+| | `getProductById` | `@Transactional(readOnly = true)` |
+| | `createProduct` | 继承类级别，写事务 |
+| | `updateProduct` | 继承类级别，写事务 |
+| | `deleteProduct` | 继承类级别，写事务 |
+
+**说明：**
+- 读方法标注 `readOnly = true` 优化数据库连接
+- `updateProduct` 的 检查→更新→回查 序列通过事务保证原子性
+- `SysOperLogServiceImpl` 已 `@Async` 异步执行，不参与业务事务
 
 ---
 

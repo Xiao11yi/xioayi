@@ -1,6 +1,7 @@
 package com.olivia.xioayi.aspect;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.olivia.xioayi.annotation.BusinessType;
 import com.olivia.xioayi.annotation.Log;
 import com.olivia.xioayi.dao.SysOperLog;
@@ -27,7 +28,8 @@ import java.util.Objects;
 public class LogAspect {
 
     private final SysOperLogService logService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
 
     /**
      * 切点：拦截所有标注了 @Log 注解的方法

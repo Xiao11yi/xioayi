@@ -4,5 +4,7 @@ public enum BusinessType {
     OTHER,
     INSERT,
     UPDATE,
-    DELETE;
+    DELETE,
+    LOGIN,
+    LOGOUT;
 }

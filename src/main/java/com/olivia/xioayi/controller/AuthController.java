@@ -1,6 +1,8 @@
 package com.olivia.xioayi.controller;
 
 
+import com.olivia.xioayi.annotation.BusinessType;
+import com.olivia.xioayi.annotation.Log;
 import com.olivia.xioayi.common.ApiResponse;
 import com.olivia.xioayi.dto.LoginRequest;
 import com.olivia.xioayi.dto.LoginResponse;
@@ -28,6 +30,7 @@ public class AuthController {
         return ApiResponse.success("Hello, " + principal.getName());
     }
 
+    @Log(title = "认证管理", businessType = BusinessType.LOGIN)
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -40,6 +43,7 @@ public class AuthController {
         return ApiResponse.success(new LoginResponse(token, username));
     }
 
+    @Log(title = "认证管理", businessType = BusinessType.LOGOUT)
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@RequestHeader("Authorization") String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

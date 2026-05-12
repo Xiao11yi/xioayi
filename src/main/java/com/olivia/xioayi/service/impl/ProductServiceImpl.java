@@ -7,17 +7,20 @@ import com.olivia.xioayi.mapper.ProductMapper;
 import com.olivia.xioayi.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(rollbackFor = Exception.class)
 public class ProductServiceImpl implements ProductService {
 
     private final ProductMapper productMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<Product> listProducts(int page, int size) {
         // 按创建时间倒序分页查询
         Page<Product> pageParam = new Page<>(page, size);
@@ -27,6 +30,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Product getProductById(Long id) {
         Product product = productMapper.selectById(id);
         if (product == null) {
