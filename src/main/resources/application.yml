@@ -11,14 +11,15 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
-      # password:  ??Redis??????
       lettuce:
         pool:
           max-active: 8
           max-idle: 8
           min-idle: 0
+  sql:
+    init:
+      mode: always
 
-# MyBatis-Plus??
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
@@ -26,7 +27,11 @@ mybatis-plus:
     db-config:
       id-type: auto
 
-# JWT??
 jwt:
   secret: MySuperSecretKeyForJWTThatIsAtLeast256BitsLong!!
-  expiration: 3600000   # 1??
+  expiration: 3600000
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.olivia.xioayi: DEBUG

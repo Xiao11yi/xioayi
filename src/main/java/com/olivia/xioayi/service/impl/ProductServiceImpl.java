@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class ProductServiceImpl implements ProductService {
     public Product getProductById(Long id) {
         Product product = productMapper.selectById(id);
         if (product == null) {
-            throw new RuntimeException("商品不存在: id=" + id);
+            throw new NoSuchElementException("商品不存在: id=" + id);
         }
         return product;
     }

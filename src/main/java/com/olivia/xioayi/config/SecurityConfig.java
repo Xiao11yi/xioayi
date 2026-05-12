@@ -1,5 +1,9 @@
 package com.olivia.xioayi.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.olivia.xioayi.common.ApiResponse;
+import com.olivia.xioayi.common.ResultCode;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +36,14 @@ public class SecurityConfig {
 
 
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            ObjectMapper mapper = new ObjectMapper();
+                            mapper.writeValue(response.getWriter(), ApiResponse.error(ResultCode.UNAUTHORIZED));
+                        })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
