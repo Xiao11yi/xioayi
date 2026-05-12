@@ -1,6 +1,8 @@
 package com.olivia.xioayi.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.olivia.xioayi.annotation.BusinessType;
+import com.olivia.xioayi.annotation.Log;
 import com.olivia.xioayi.dao.Product;
 import com.olivia.xioayi.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -24,27 +26,19 @@ public class ProductController {
         return ResponseEntity.ok(productService.listProducts(page, size));
     }
 
-    /** 查询单个商品 */
-    @GetMapping("/{id}")
-    public ResponseEntity<Product> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
-    }
-
-    /** 新增商品 */
+    @Log(title = "商品管理", businessType = BusinessType.INSERT)
     @PostMapping
     public ResponseEntity<Product> create(@RequestBody Product product) {
         return ResponseEntity.ok(productService.createProduct(product));
     }
 
-    /** 更新商品 */
+    @Log(title = "商品管理", businessType = BusinessType.UPDATE)
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(
-            @PathVariable Long id,
-            @RequestBody Product product) {
+    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product product) {
         return ResponseEntity.ok(productService.updateProduct(id, product));
     }
 
-    /** 删除商品 */
+    @Log(title = "商品管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> delete(@PathVariable Long id) {
         productService.deleteProduct(id);
