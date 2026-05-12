@@ -33,7 +33,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()  // 查询公开
                         .requestMatchers("/api/auth/logout").authenticated()
                         .anyRequest().authenticated()
-                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
