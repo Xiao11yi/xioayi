@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/api/products)",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(tee /dev/stderr)",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"user\",\"password\":\"user123\"}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"123456\"}')",
+      "Bash(curl *)",
+      "Bash(mysql -u root -p313748 -h 127.0.0.1 -e \"USE auth_demo; SELECT * FROM user;\")",
+      "Bash(lsof -ti:8080)",
+      "Bash(netstat -ano)",
+      "Bash(kill -9 35992)",
+      "Bash(nohup ./mvnw spring-boot:run -q)",
+      "Bash(echo \"PID=$!\")",
+      "Bash(taskkill /F /PID 35992)",
+      "Bash(node -e \"const bcrypt = require\\('bcryptjs'\\); console.log\\(bcrypt.hashSync\\('admin123', 10\\)\\);\")",
+      "Bash(npm install *)",
+      "Bash(/c/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe *)",
+      "Bash(node -e ' *)",
+      "Bash(./mvnw compile *)",
+      "Bash(\"/c/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -p313748 -h 127.0.0.1 auth_demo -e \"DELETE FROM product WHERE id >= 100;\")"
+    ]
+  }
+}
