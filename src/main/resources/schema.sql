@@ -28,3 +28,22 @@ CREATE TABLE IF NOT EXISTS `user_coupon` (
   UNIQUE KEY `uk_user_coupon` (`user_id`, `coupon_id`),
   KEY `idx_coupon_id` (`coupon_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `orders` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `order_no` varchar(32) NOT NULL COMMENT '订单号',
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `product_name` varchar(100) DEFAULT NULL COMMENT '商品名称快照',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `amount` decimal(10,2) NOT NULL COMMENT '支付金额',
+  `status` tinyint DEFAULT 0 COMMENT '状态: 0=待支付, 1=已支付, 2=已过期',
+  `alipay_trade_no` varchar(64) DEFAULT NULL COMMENT '支付宝交易号',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `expire_time` datetime DEFAULT NULL COMMENT '过期时间（创建后30分钟）',
+  `pay_time` datetime DEFAULT NULL COMMENT '支付时间',
+  `update_time` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order_no` (`order_no`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

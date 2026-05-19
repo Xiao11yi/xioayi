@@ -9,6 +9,7 @@ import com.olivia.xioayi.dao.UserCoupon;
 import com.olivia.xioayi.mapper.CouponMapper;
 import com.olivia.xioayi.mapper.UserCouponMapper;
 import com.olivia.xioayi.mapper.UserMapper;
+import com.olivia.xioayi.service.CouponCacheService;
 import com.olivia.xioayi.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,6 +27,7 @@ public class CouponServiceImpl implements CouponService {
     private final CouponMapper couponMapper;
     private final UserCouponMapper userCouponMapper;
     private final UserMapper userMapper;
+    private final CouponCacheService couponCacheService;
 
     @Override
     @Transactional(readOnly = true)
@@ -52,6 +54,7 @@ public class CouponServiceImpl implements CouponService {
         coupon.setCreateTime(LocalDateTime.now());
         coupon.setUpdateTime(LocalDateTime.now());
         couponMapper.insert(coupon);
+        couponCacheService.initStock(coupon.getId());
         return coupon;
     }
 
@@ -95,13 +98,14 @@ public class CouponServiceImpl implements CouponService {
             throw new NoSuchElementException("用户不存在: " + username);
         }
 
-        // 5. 原子递增 used_count，先占住名额（并发安全）
-        int updated = couponMapper.incrementUsedCount(couponId);
-        if (updated == 0) {
+        // 5. Redis 原子扣减库存（并发安全，单机 1万+ TPS）
+        long remaining = couponCacheService.decrStock(couponId);
+        if (remaining < 0) {
+            couponCacheService.incrStock(couponId);
             throw new IllegalArgumentException("优惠券已被抢完");
         }
 
-        // 6. 记录领取（由 DB 唯一约束防止重复，而非先查后插）
+        // 6. 记录领取（由 DB 唯一约束防止重复）
         UserCoupon uc = new UserCoupon();
         uc.setCouponId(couponId);
         uc.setUserId(user.getId());
@@ -110,8 +114,7 @@ public class CouponServiceImpl implements CouponService {
         try {
             userCouponMapper.insert(uc);
         } catch (DuplicateKeyException e) {
-            // 唯一约束冲突：同一用户重复领取 → 回退名额
-            couponMapper.decrementUsedCount(couponId);
+            couponCacheService.incrStock(couponId);
             throw new IllegalArgumentException("已领取过该优惠券，不能重复领取");
         }
 

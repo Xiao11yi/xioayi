@@ -8,6 +8,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.olivia.xioayi.service.RateLimitService.RateLimitException;
 import java.util.NoSuchElementException;
 
 @RestControllerAdvice
@@ -37,6 +38,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException e) {
         return ResponseEntity.status(ResultCode.BAD_REQUEST.getCode())
                 .body(ApiResponse.error(ResultCode.BAD_REQUEST, e.getMessage()));
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimit(RateLimitException e) {
+        return ResponseEntity.status(ResultCode.TOO_MANY_REQUESTS.getCode())
+                .body(ApiResponse.error(ResultCode.TOO_MANY_REQUESTS, e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

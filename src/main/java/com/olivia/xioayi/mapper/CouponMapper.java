@@ -13,4 +13,7 @@ public interface CouponMapper extends BaseMapper<Coupon> {
 
     @Update("UPDATE coupon SET used_count = used_count - 1 WHERE id = #{id} AND used_count > 0")
     int decrementUsedCount(Long id);
+
+    @Update("UPDATE coupon SET used_count = #{usedCount} WHERE id = #{id}")
+    int updateUsedCount(Long id, int usedCount);
 }

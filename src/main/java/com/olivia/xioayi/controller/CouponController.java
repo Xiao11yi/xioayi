@@ -2,10 +2,12 @@ package com.olivia.xioayi.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.olivia.xioayi.annotation.BusinessType;
+import com.olivia.xioayi.annotation.Idempotent;
 import com.olivia.xioayi.annotation.Log;
 import com.olivia.xioayi.common.ApiResponse;
 import com.olivia.xioayi.dao.Coupon;
 import com.olivia.xioayi.service.CouponService;
+import com.olivia.xioayi.service.RateLimitService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class CouponController {
 
     private final CouponService couponService;
+    private final RateLimitService rateLimitService;
 
     @Operation(summary = "优惠券分页列表", description = "公开接口，无需登录，返回分页优惠券数据")
     @GetMapping
@@ -55,10 +58,12 @@ public class CouponController {
         return ApiResponse.success();
     }
 
-    @Operation(summary = "抢优惠券", description = "需要登录，用户领取优惠券，同一用户不可重复领取")
+    @Idempotent(prefix = "grab", ttl = 2)
+    @Operation(summary = "抢优惠券", description = "需要登录，用户领取优惠券，同一用户不可重复领取（防抖 2s + 限流 5 次/分钟）")
     @Log(title = "优惠券管理", businessType = BusinessType.GRAB)
     @PostMapping("/{id}/grab")
     public ApiResponse<Coupon> grab(@PathVariable Long id, java.security.Principal principal) {
+        rateLimitService.checkGrabLimit(principal.getName());
         return ApiResponse.success(couponService.grabCoupon(id, principal.getName()));
     }
 }

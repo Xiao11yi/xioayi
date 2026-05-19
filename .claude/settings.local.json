@@ -41,7 +41,13 @@
       "Bash(./mvnw dependency:build-classpath -DincludeScope=compile -q)",
       "Bash(./mvnw help:effective-settings -q)",
       "Bash(./mvnw dependency:resolve -q)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(./mvnw dependency:resolve -Dincludes=com.alipay.sdk:alipay-sdk-java)",
+      "Bash(git checkout *)",
+      "Bash(git rm *)",
+      "Bash(git add *)",
+      "Bash(mysql -h localhost -u root -p313748 auth_demo -e \"SELECT id, order_no, status, alipay_trade_no, pay_time FROM orders ORDER BY id DESC LIMIT 5;\")",
+      "Bash(mysql -h localhost -u root -p313748 auth_demo -e \"DESC orders;\")"
     ]
   }
 }

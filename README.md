@@ -8,10 +8,11 @@ Spring Boot 3.5 认证 + 商品管理后端服务。
 |------|------|
 | Spring Boot | 3.5.11 |
 | Java | 17 |
-| MySQL + Redis | — |
+| MySQL + Redis | Token 黑名单 + 抢券原子计数 |
 | MyBatis-Plus | 3.5.10（含 jsqlparser 分页） |
 | Spring Security + JWT | — |
 | springdoc-openapi | 2.8.12 |
+| 支付宝 SDK | alipay-easysdk 2.2.3（沙箱） |
 
 ## 快速开始
 
@@ -52,12 +53,12 @@ src/main/java/com/olivia/xioayi/
 ├── annotation/     # @Log 注解
 ├── aspect/         # AOP 操作日志切面
 ├── common/         # 统一响应 + 全局异常处理
-├── config/         # Security + JWT + OpenAPI + MyBatis-Plus 配置
-├── controller/     # Auth, Product, Coupon 控制器
-├── dao/            # Product, Coupon, SysOperLog, User 实体
+├── config/         # Security + JWT + OpenAPI + MyBatis-Plus + Alipay 配置
+├── controller/     # Auth, Product, Coupon, Order, AlipayNotify 控制器
+├── dao/            # Product, Coupon, UserCoupon, Order, SysOperLog, User 实体
 ├── dto/            # LoginRequest, LoginResponse
 ├── mapper/         # MyBatis-Plus Mapper
-├── service/        # 业务逻辑
+├── service/        # 业务逻辑（含 CouponCacheService Redis 库存管理）
 └── util/           # JWT 工具类
 ```
 
@@ -78,13 +79,47 @@ src/main/java/com/olivia/xioayi/
 | PUT | `/api/coupons/{id}` | 更新优惠券 | 是 |
 | DELETE | `/api/coupons/{id}` | 删除优惠券 | 是 |
 | POST | `/api/coupons/{id}/grab` | 抢优惠券 | 是 |
+| POST | `/api/orders/product/{productId}` | 创建订单 | 是 |
+| GET | `/api/orders/{orderNo}` | 查询订单 | 是 |
+| POST | `/api/orders/{orderNo}/pay` | 获取支付宝支付表单 | 是 |
+| POST | `/api/alipay/notify` | 支付宝异步通知回调 | 否（公开） |
 
-### 抢券规则
+### 下单支付流程
 
-- 同一用户不可重复领取同一张优惠券
-- 达到 `usage_limit` 后无法继续领取（`usage_limit=0` 表示不限制）
-- 只能在 `start_time` ~ `end_time` 时间内领取
-- `used_count` 使用原子递增，并发安全
+1. `POST /api/orders/product/{id}` 创建订单（`expire_time = now + 30min`）
+2. `POST /api/orders/{orderNo}/pay` 获取支付宝支付表单
+3. 前端自动提交表单跳转沙箱支付页
+4. 支付宝异步回调 `POST /api/alipay/notify` 更新订单状态
+5. 浏览器访问 `http://localhost:8080/pay-test.html` 可视化测试
+
+### 支付宝沙箱
+
+`application.yml` 配置支付宝沙箱参数：
+
+```yaml
+alipay:
+  appId: 你的沙箱APPID
+  merchantPrivateKey: 你的应用私钥（RSA2）
+  alipayPublicKey: 支付宝公钥（非应用公钥）
+  notifyUrl: http://你的内网穿透地址/api/alipay/notify  # 注意单斜杠
+  returnUrl: http://你的内网穿透地址/pay-test.html
+  gatewayUrl: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+```
+
+> ⚠️ `notifyUrl` 中的内网穿透地址必须保持在线，否则支付宝无法回调。
+> 沙箱测试时在支付页面请点击 **"登录账户付款"**，不要扫描二维码。
+
+### 测试支付页面
+
+浏览器打开 [`http://localhost:8080/pay-test.html`](http://localhost:8080/pay-test.html) 即可可视化测试：登录 → 选商品下单 → 跳转支付宝沙箱 → 买家账号登录支付。
+
+### 抢券规则（3 层防护）
+
+| 防护 | 机制 | 触发条件 |
+|------|------|---------|
+| ① 防抖 | `@Idempotent(ttl=2s)` Redis SET NX | 同一用户抢同一券 2 秒内重复点击 |
+| ② 限流拉黑 | Redis 计数器 + 黑名单 | 用户 5 次/分钟 或 设备 10 次/分钟 → 拉黑 30 分钟 |
+| ③ 业务约束 | Redis Lua DECR + DB 唯一约束 | 库存耗尽或已领取过 |
 
 ## License
 

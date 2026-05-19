@@ -3,7 +3,212 @@
 > 测试时间：2026-05-19
 > 项目状态：✅ 已启动（端口 8080）
 > 测试用户：`admin` / `123456`
-> 测试结果：**31 项全部通过** ✅
+> 测试结果：**全量通过** ✅
+
+---
+
+## UML 类图
+
+```mermaid
+classDiagram
+    class AuthController {
+        +login() ApiResponse
+        +logout() ApiResponse
+        +hello() ApiResponse
+    }
+
+    class ProductController {
+        +list() ApiResponse
+        +get() ApiResponse
+        +create() ApiResponse
+        +update() ApiResponse
+        +delete() ApiResponse
+    }
+
+    class CouponController {
+        +list() ApiResponse
+        +get() ApiResponse
+        +create() ApiResponse
+        +update() ApiResponse
+        +delete() ApiResponse
+        +grab() ApiResponse
+    }
+
+    class OrderController {
+        +create() ApiResponse
+        +get() ApiResponse
+        +pay() ApiResponse
+    }
+
+    class AlipayNotifyController {
+        +handleNotify() String
+    }
+
+    class ProductService {
+        <<interface>>
+        +listProducts() Page
+        +getProductById() Product
+        +createProduct() Product
+        +updateProduct() Product
+        +deleteProduct() void
+    }
+
+    class CouponService {
+        <<interface>>
+        +listCoupons() Page
+        +getCouponById() Coupon
+        +createCoupon() Coupon
+        +updateCoupon() Coupon
+        +deleteCoupon() void
+        +grabCoupon() Coupon
+    }
+
+    class OrderService {
+        <<interface>>
+        +createOrder() Order
+        +getByOrderNo() Order
+        +payForm() String
+        +handlePaidNotify() void
+    }
+
+    class AlipayService {
+        +createPayForm() String
+        +verifyNotify() boolean
+    }
+
+    class RateLimitService {
+        +checkGrabLimit() void
+    }
+
+    class CouponCacheService {
+        +decrStock() long
+        +incrStock() void
+        +initStock() void
+    }
+
+    class CouponServiceImpl {
+        +createCoupon() Coupon
+        +grabCoupon() Coupon
+    }
+
+    class OrderServiceImpl {
+        +createOrder() Order
+        +payForm() String
+    }
+
+    class Product {
+        +Long id
+        +String name
+        +BigDecimal price
+        +Integer stock
+    }
+
+    class Coupon {
+        +Long id
+        +String name
+        +String code
+        +Integer type
+        +BigDecimal value
+        +Integer usageLimit
+        +Integer usedCount
+    }
+
+    class Order {
+        +Long id
+        +String orderNo
+        +BigDecimal amount
+        +Integer status
+        +LocalDateTime expireTime
+    }
+
+    class UserCoupon {
+        +Long id
+        +Long couponId
+        +Long userId
+        +Integer used
+    }
+
+    ProductController --> ProductService
+    CouponController --> CouponService
+    CouponController --> RateLimitService
+    OrderController --> OrderService
+    AlipayNotifyController --> AlipayService
+    AlipayNotifyController --> OrderService
+    CouponServiceImpl --> CouponCacheService
+    OrderServiceImpl --> AlipayService
+    OrderServiceImpl --> ProductService
+```
+
+## UML 时序图
+
+### 抢券时序
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant GW as Gateway
+    participant CC as Controller
+    participant CS as Cache
+    participant CP as Service
+    participant DB as MySQL
+    U->>GW: POST /api/coupons/{id}/grab
+    GW->>GW: JWT + RateLimit + Idempotent
+    GW->>CC: pass
+    CC->>CS: decrStock(id)
+    CS->>CS: Redis DECR
+    CS-->>CC: remaining
+    alt stock <= 0
+        CC-->>U: 400 sold out
+    else stock > 0
+        CC->>CP: grabCoupon()
+        CP->>DB: INSERT user_coupon
+        alt duplicate key
+            DB-->>CP: DuplicateKeyException
+            CP->>CS: incrStock() rollback
+            CP-->>CC: throw
+            CC-->>U: 400 duplicate
+        else success
+            DB-->>CP: OK
+            CP-->>CC: Coupon
+            CC-->>U: 200 success
+        end
+    end
+```
+
+### 支付时序
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant OC as OrderController
+    participant OS as OrderService
+    participant AS as AlipaySvc
+    participant Ali as Alipay
+    U->>OC: POST /api/orders/product/2
+    OC->>OS: createOrder(2, userId)
+    OS->>OS: gen orderNo + expireTime
+    OS-->>OC: Order(status=0)
+    OC-->>U: order info
+    U->>OC: POST /api/orders/{no}/pay
+    OC->>OS: payForm(orderNo)
+    OS->>OS: check expired
+    OS->>AS: createPayForm()
+    AS->>Ali: alipay.trade.page.pay
+    Ali-->>AS: HTML form
+    AS-->>OS: form
+    OS-->>OC: form
+    OC-->>U: payment form
+    U->>Ali: submit form
+    Ali->>Ali: user pay
+    Ali->>OC: POST /api/alipay/notify
+    OC->>AS: verifyNotify()
+    AS-->>OC: verified
+    OC->>OS: handlePaidNotify()
+    OS->>OS: update status=1
+    OS-->>OC: OK
+    OC-->>Ali: success
+```
+```
 
 ---
 
@@ -19,6 +224,7 @@
 | 400 | 参数错误 / 业务拒绝（重复抢券、券已抢完等） |
 | 401/403 | 未授权/无权限 |
 | 404/500 | 资源不存在/服务器错误 |
+| 429 | 请求过于频繁 / 已被拉黑 |
 
 ---
 
@@ -53,7 +259,16 @@
 | DELETE | `/api/coupons/{id}` | 需 Token | ✅ |
 | POST | `/api/coupons/{id}/grab` | 需 Token | ✅ |
 
-**异常覆盖：** 密码错误 → 401，登出后访问 → 401，删除不存在资源 → 404，重复抢券 → 400，抢完 → 400
+### 订单管理 — `/api/orders`
+
+| 方法 | 路径 | 认证 | 结果 |
+|------|------|------|------|
+| POST | `/api/orders/product/{productId}` | 需 Token | ✅ |
+| GET | `/api/orders/{orderNo}` | 需 Token | ✅ |
+| POST | `/api/orders/{orderNo}/pay` | 需 Token | ✅ |
+| POST | `/api/alipay/notify` | 公开（支付宝回调） | ✅ |
+
+**异常覆盖：** 密码错误 → 401，登出后访问 → 401，资源不存在 → 404，重复抢券 → 400，抢完 → 400，订单过期 → 400
 
 ---
 
@@ -61,32 +276,22 @@
 
 `POST /api/coupons/{id}/grab` — 需登录
 
-### 并发安全设计
+### 安全设计（3 层防护）
 
-| 机制 | 说明 |
-|------|------|
-| 原子 UPDATE 防超发 | `UPDATE coupon SET used_count = used_count + 1 WHERE id = ? AND (usage_limit = 0 OR used_count < usage_limit)` — MySQL 行锁保证不会超卖 |
-| 唯一约束防重复 | `UNIQUE KEY(user_id, coupon_id)` 由数据库保证，非先查后插，消除 TOCTOU 竞态 |
-| 重复时回退名额 | `DuplicateKeyException` 捕获后执行 `used_count - 1` |
-| 事务回滚 | `@Transactional(rollbackFor = Exception.class)` |
+| 层 | 机制 | 说明 |
+|----|------|------|
+| ① 防抖 | `@Idempotent(ttl=2s)` | Redis SET NX 防重复提交 |
+| ② 限流拉黑 | `RateLimitService` | 用户 5 次/分钟 或 设备 10 次/分钟 → 黑名单 30 分钟 |
+| ③ 业务防护 | Redis Lua DECR + DB 唯一约束 | 库存原子扣减 + 重复领取拦截 |
 
 ### 并发测试结果（20 并发同用户抢同一券）
 
 | 指标 | 值 |
 |------|----|
-| 成功 | 1（正确） |
-| 重复拒绝 | 19（正确） |
+| 成功 | 1 |
+| 重复拒绝 | 正确拦截 |
 | 超发 | 0 |
 | 500 错误 | 0 |
-| 最终 used_count | 1（正确） |
-
-### 并发能力估算
-
-| 场景 | 瓶颈 | 估算 TPS |
-|------|------|---------|
-| 同一张券抢购 | MySQL 行锁串行化 | ~100-200 |
-| 多张券并行抢购 | Tomcat 线程池（默认 200） | ~500-1000 |
-| Redis 原子计数 + 异步落库（改造后） | Redis 单线程 | 1万+ |
 
 ---
 
@@ -94,7 +299,40 @@
 
 `@Log` 注解 + `LogAspect` 切面自动记录操作到 `sys_oper_log` 表。
 
-覆盖 10 种场景：登录（成功/失败）、注销、新增/更新/删除商品、新增/更新/删除优惠券、抢优惠券 — 全部通过 ✅
+覆盖 13 种场景：登录（成功/失败）、注销、新增/更新/删除商品、新增/更新/删除优惠券、抢优惠券、创建订单、限流拒绝（429）、防抖拒绝（400）— 全部通过 ✅
+
+---
+
+## 下单支付流程
+
+### 业务流程
+
+```
+用户 → 创建订单（expire_time = now + 30min）
+     → 获取支付宝支付表单
+     → 跳转支付宝沙箱
+     → 完成支付
+     → 异步回调 POST /api/alipay/notify 更新订单状态
+```
+
+### 30 分钟超时机制
+
+| 机制 | 实现 |
+|------|------|
+| 订单过期 | 创建时写入 `expire_time = createTime + 30min` |
+| 支付前校验 | 获取表单时检查 `expire_time` |
+| 批量过期 | 定时扫描过期订单标记 `status=2` |
+| 支付宝超时 | easysdk 默认超时 |
+
+### 支付宝 SDK
+
+| SDK | 版本 |
+|-----|------|
+| alipay-easysdk | 2.2.3 |
+
+### 测试支付页面
+
+访问 `http://localhost:8080/pay-test.html` 可浏览器测试完整下单支付流程。
 
 ---
 
@@ -109,12 +347,16 @@
 
 ---
 
-## 数据库依赖
+## Redis 使用
 
-| 组件 | 地址 |
-|------|------|
-| MySQL | `localhost:3306 / auth_demo` |
-| Redis | `localhost:6379` |
+| 用途 | 数据结构 | TTL |
+|------|---------|-----|
+| Token 黑名单 | `auth:token:{jwt}` | 1h |
+| 优惠券库存 | `coupon:stock:{id}` | 2h |
+| 用户限流 | `ratelimit:grab:user:{id}` | 60s |
+| 设备限流 | `ratelimit:grab:device:{fp}` | 60s |
+| 黑名单 | `blacklist:grab:user/{device}:{id}` | 30min |
+| 防抖锁 | `idempotent:grab:{userId}:{couponId}` | 2s |
 
 ---
 
@@ -130,6 +372,8 @@
 | 路径 | 状态 |
 |------|------|
 | `/swagger-ui.html`, `/swagger-ui/**`, `/api-docs`, `/api-docs/**`, `/v3/api-docs/**`, `/webjars/**` | ✅ 全部放行 |
+| `/pay-test.html`, `/static/**`, `/*.html` | ✅ 测试页面放行 |
+| `/api/alipay/**` | ✅ 支付宝回调放行 |
 
 ### 修复项
 
@@ -164,6 +408,28 @@
 ### 删除不存在商品 500
 - **原因：** getProductById 抛出 RuntimeException
 - **修复：** 改为抛出 NoSuchElementException，全局处理返回 404
+
+### 分页查询 total 始终为 0
+- **原因：** MyBatis-Plus 3.5.10 缺少 `mybatis-plus-jsqlparser` 依赖
+- **修复：** 添加 `mybatis-plus-jsqlparser` + 配置 `MybatisPlusConfig` 分页拦截器
+
+### 商品查询详情接口缺失
+- **原因：** `ProductController` 缺少 `@GetMapping("/{id}")` 端点
+- **修复：** 新增查询方法
+
+### 支付宝回调订单状态未更新
+- **原因：** 两层问题叠加。① `alipay-easysdk` 的 `Factory.Payment.Page().pay()` 未将 `notifyUrl` 写入表单；② `alipayPublicKey` 配置的是**应用公钥**而非**支付宝公钥**，导致验签失败
+- **修复：** ① 回退至 `alipay-sdk-java:4.9.28.ALL`，显式 `request.setNotifyUrl()`；② 改为从沙箱控制台获取正确的支付宝公钥
+
+### 回调验证结果
+
+```
+支付订单: Apple Watch S10  ¥3,199.00
+订单号:   20260519225530A4B39E206A
+支付宝交易号: 2026051922001428890511719692
+状态:     status=1 已支付 ✅
+支付时间: 2026-05-19 22:55:52
+```
 
 ### 分页查询 total 始终为 0
 - **原因：** MyBatis-Plus 3.5.10 缺少 `mybatis-plus-jsqlparser` 依赖，`PaginationInnerInterceptor` 未注册，分页不计数
