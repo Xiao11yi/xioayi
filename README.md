@@ -77,6 +77,14 @@ src/main/java/com/olivia/xioayi/
 | POST | `/api/coupons` | 新增优惠券 | 是 |
 | PUT | `/api/coupons/{id}` | 更新优惠券 | 是 |
 | DELETE | `/api/coupons/{id}` | 删除优惠券 | 是 |
+| POST | `/api/coupons/{id}/grab` | 抢优惠券 | 是 |
+
+### 抢券规则
+
+- 同一用户不可重复领取同一张优惠券
+- 达到 `usage_limit` 后无法继续领取（`usage_limit=0` 表示不限制）
+- 只能在 `start_time` ~ `end_time` 时间内领取
+- `used_count` 使用原子递增，并发安全
 
 ## License
 

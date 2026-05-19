@@ -14,4 +14,6 @@ public interface CouponService {
     Coupon updateCoupon(Long id, Coupon coupon);
 
     void deleteCoupon(Long id);
+
+    Coupon grabCoupon(Long couponId, String username);
 }

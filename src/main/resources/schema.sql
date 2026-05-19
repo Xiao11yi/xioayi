@@ -16,3 +16,15 @@ CREATE TABLE IF NOT EXISTS `coupon` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `user_coupon` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `coupon_id` bigint NOT NULL COMMENT '优惠券ID',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `grab_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '领取时间',
+  `used` tinyint DEFAULT 0 COMMENT '是否已使用: 0=未使用, 1=已使用',
+  `used_time` datetime DEFAULT NULL COMMENT '使用时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_coupon` (`user_id`, `coupon_id`),
+  KEY `idx_coupon_id` (`coupon_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

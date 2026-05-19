@@ -54,4 +54,11 @@ public class CouponController {
         couponService.deleteCoupon(id);
         return ApiResponse.success();
     }
+
+    @Operation(summary = "抢优惠券", description = "需要登录，用户领取优惠券，同一用户不可重复领取")
+    @Log(title = "优惠券管理", businessType = BusinessType.GRAB)
+    @PostMapping("/{id}/grab")
+    public ApiResponse<Coupon> grab(@PathVariable Long id, java.security.Principal principal) {
+        return ApiResponse.success(couponService.grabCoupon(id, principal.getName()));
+    }
 }

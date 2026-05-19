@@ -6,5 +6,6 @@ public enum BusinessType {
     UPDATE,
     DELETE,
     LOGIN,
-    LOGOUT;
+    LOGOUT,
+    GRAB;
 }
