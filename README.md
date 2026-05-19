@@ -12,7 +12,8 @@ Spring Boot 3.5 认证 + 商品管理后端服务。
 | MyBatis-Plus | 3.5.10（含 jsqlparser 分页） |
 | Spring Security + JWT | — |
 | springdoc-openapi | 2.8.12 |
-| 支付宝 SDK | alipay-easysdk 2.2.3（沙箱） |
+| 支付宝 SDK | alipay-sdk-java 4.9.28.ALL |
+| 管理前端 | Vue 3 + Element Plus + Vite |
 
 ## 快速开始
 
@@ -30,6 +31,16 @@ Spring Boot 3.5 认证 + 商品管理后端服务。
 
 ./mvnw spring-boot:run
 ```
+
+### 启动前端（可选）
+
+```bash
+cd frontend
+npm install
+npm run dev    # http://localhost:3000
+```
+
+Vite 自动代理 `/api` 请求到后端 `localhost:8080`。
 
 ### 测试用户
 
@@ -54,7 +65,7 @@ src/main/java/com/olivia/xioayi/
 ├── aspect/         # AOP 操作日志切面
 ├── common/         # 统一响应 + 全局异常处理
 ├── config/         # Security + JWT + OpenAPI + MyBatis-Plus + Alipay 配置
-├── controller/     # Auth, Product, Coupon, Order, AlipayNotify 控制器
+├── controller/     # Auth, Product, Coupon, Order, User, AlipayNotify 控制器
 ├── dao/            # Product, Coupon, UserCoupon, Order, SysOperLog, User 实体
 ├── dto/            # LoginRequest, LoginResponse
 ├── mapper/         # MyBatis-Plus Mapper
@@ -83,6 +94,8 @@ src/main/java/com/olivia/xioayi/
 | GET | `/api/orders/{orderNo}` | 查询订单 | 是 |
 | POST | `/api/orders/{orderNo}/pay` | 获取支付宝支付表单 | 是 |
 | POST | `/api/alipay/notify` | 支付宝异步通知回调 | 否（公开） |
+| GET | `/api/users` | 用户列表 | 是 |
+| PUT | `/api/users/{id}` | 更新用户状态 | 是 |
 
 ### 下单支付流程
 
@@ -93,6 +106,20 @@ src/main/java/com/olivia/xioayi/
 5. 浏览器访问 `http://localhost:8080/pay-test.html` 可视化测试
 
 ### 支付宝沙箱
+
+## 前端页面
+
+| 路由 | 页面 | 类型 |
+|------|------|------|
+| `/login` | 登录 | — |
+| `/dashboard` | 仪表盘 | 管理端 |
+| `/product` | 商品 CRUD | 管理端 |
+| `/coupon` | 优惠券 CRUD | 管理端 |
+| `/order` | 订单查询 | 管理端 |
+| `/user` | 用户管理 | 管理端 |
+| `/shop/products` | 商品浏览+下单 | **用户端** |
+| `/shop/coupons` | 优惠券领取 | **用户端** |
+| `/shop/orders` | 我的订单 | **用户端** |
 
 `application.yml` 配置支付宝沙箱参数：
 
@@ -112,6 +139,18 @@ alipay:
 ### 测试支付页面
 
 浏览器打开 [`http://localhost:8080/pay-test.html`](http://localhost:8080/pay-test.html) 即可可视化测试：登录 → 选商品下单 → 跳转支付宝沙箱 → 买家账号登录支付。
+
+## 管理前端
+
+基于 Vue 3 + Element Plus，若依风格。
+
+```bash
+cd frontend
+npm install
+npm run dev    # http://localhost:3000
+```
+
+默认账号 `admin` / `123456`。Vite 自动代理 `/api` 请求到后端。
 
 ### 抢券规则（3 层防护）
 

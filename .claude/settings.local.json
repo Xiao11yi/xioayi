@@ -47,7 +47,10 @@
       "Bash(git rm *)",
       "Bash(git add *)",
       "Bash(mysql -h localhost -u root -p313748 auth_demo -e \"SELECT id, order_no, status, alipay_trade_no, pay_time FROM orders ORDER BY id DESC LIMIT 5;\")",
-      "Bash(mysql -h localhost -u root -p313748 auth_demo -e \"DESC orders;\")"
+      "Bash(mysql -h localhost -u root -p313748 auth_demo -e \"DESC orders;\")",
+      "Bash(npx vite *)",
+      "Bash(awk '/^```$/ && ++n == 2 && p == 1 {n = 0; next} {p = \\(/^```$/ ? 1 : 0\\); print}' status.md)",
+      "Bash(mv status_fixed.md status.md)"
     ]
   }
 }

@@ -1,9 +1,40 @@
 # 项目接口测试状态
 
 > 测试时间：2026-05-19
-> 项目状态：✅ 已启动（端口 8080）
+> 项目状态：✅ 已启动（后端 8080 / 前端 3000）
 > 测试用户：`admin` / `123456`
 > 测试结果：**全量通过** ✅
+
+---
+
+## 管理前端
+
+基于 Vue 3 + Element Plus 的若依风格管理面板。
+
+### 启动方式
+
+```bash
+cd frontend
+npm install
+npm run dev        # 开发模式 http://localhost:3000
+npm run build      # 构建生产包到 dist/
+```
+
+### 页面列表
+
+| 路由 | 页面 | 说明 |
+|------|------|------|
+| `/login` | 登录 | 默认 admin / 123456 |
+| `/dashboard` | 仪表盘 | 概览统计 |
+| `/product` | 商品管理 | CRUD + 分页 |
+| `/coupon` | 优惠券管理 | CRUD + 分页 |
+| `/order` | 订单管理 | 按订单号查询 |
+| `/user` | 用户管理 | 列表 + 启用/禁用 |
+| `/shop/products` | 商城-商品 | 用户浏览、下单、支付 |
+| `/shop/coupons` | 商城-优惠券 | 用户领取优惠券 |
+| `/shop/orders` | 商城-订单 | 用户查询订单 |
+
+开发模式下 Vite 自动代理 `/api` 到后端 `localhost:8080`。
 
 ---
 
@@ -38,6 +69,11 @@ classDiagram
         +create() ApiResponse
         +get() ApiResponse
         +pay() ApiResponse
+    }
+
+    class UserController {
+        +list() ApiResponse
+        +update() ApiResponse
     }
 
     class AlipayNotifyController {
@@ -259,6 +295,13 @@ sequenceDiagram
 | DELETE | `/api/coupons/{id}` | 需 Token | ✅ |
 | POST | `/api/coupons/{id}/grab` | 需 Token | ✅ |
 
+### 用户管理 — `/api/users`
+
+| 方法 | 路径 | 认证 | 结果 |
+|------|------|------|------|
+| GET | `/api/users` | 需 Token | ✅ |
+| PUT | `/api/users/{id}` | 需 Token | ✅ |
+
 ### 订单管理 — `/api/orders`
 
 | 方法 | 路径 | 认证 | 结果 |
@@ -328,7 +371,7 @@ sequenceDiagram
 
 | SDK | 版本 |
 |-----|------|
-| alipay-easysdk | 2.2.3 |
+| alipay-sdk-java | 4.9.28.ALL |
 
 ### 测试支付页面
 
@@ -342,6 +385,7 @@ sequenceDiagram
 |------|------|
 | `POST /api/auth/login, /logout` | 公开 |
 | `GET /api/products/**`、`GET /api/coupons/**` | 公开 |
+| `/api/users/**` | 需 Token |
 | 其余接口 | 需 Bearer Token |
 | 登出后 Token 立即失效 | 返回 401 |
 
@@ -430,11 +474,3 @@ sequenceDiagram
 状态:     status=1 已支付 ✅
 支付时间: 2026-05-19 22:55:52
 ```
-
-### 分页查询 total 始终为 0
-- **原因：** MyBatis-Plus 3.5.10 缺少 `mybatis-plus-jsqlparser` 依赖，`PaginationInnerInterceptor` 未注册，分页不计数
-- **修复：** `pom.xml` 添加 `mybatis-plus-jsqlparser:3.5.10` + 新增 `MybatisPlusConfig.java` 配置拦截器
-
-### 商品查询详情接口缺失
-- **原因：** `ProductController` 缺少 `@GetMapping("/{id}")` 端点，`GET /api/products/{id}` 返回 405
-- **修复：** `ProductController.java` 新增 `get()` 方法，调用 `productService.getProductById()`
