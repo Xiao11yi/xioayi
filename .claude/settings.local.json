@@ -19,7 +19,17 @@
       "Bash(/c/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe *)",
       "Bash(node -e ' *)",
       "Bash(./mvnw compile *)",
-      "Bash(\"/c/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -p313748 -h 127.0.0.1 auth_demo -e \"DELETE FROM product WHERE id >= 100;\")"
+      "Bash(\"/c/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -p313748 -h 127.0.0.1 auth_demo -e \"DELETE FROM product WHERE id >= 100;\")",
+      "Bash(./mvnw spring-boot:run)",
+      "Bash(pkill -f \"spring-boot:run\")",
+      "Bash(pkill -f \"xioayi\")",
+      "Bash(echo \"PID: $!\")",
+      "Read(//tmp/**)",
+      "Bash(kill -f 19376)",
+      "Bash(taskkill //F //PID 19376)",
+      "Bash(pkill -9 -f java)",
+      "Bash(taskkill //F //PID 7800)",
+      "WebSearch"
     ]
   }
 }

@@ -6,8 +6,8 @@
 
 | 组件 | 说明 |
 |------|------|
-| 库 | `springdoc-openapi-starter-webmvc-ui:2.6.0` |
-| 规范 | OpenAPI 3.0 (v3) |
+| 库 | `springdoc-openapi-starter-webmvc-ui:2.8.12` |
+| 规范 | OpenAPI 3.1 (v3) |
 | UI | Swagger UI（内嵌） |
 | JSON 端点 | `/api-docs` |
 | YAML 端点 | `/api-docs.yaml`（默认支持） |
