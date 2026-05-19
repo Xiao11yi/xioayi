@@ -3,6 +3,7 @@
 > 测试时间：2026-05-12
 > 项目状态：✅ 已启动（端口 8080）
 > 测试用户：`admin` / `123456`
+> Swagger 审计：2026-05-19
 
 ---
 
@@ -215,6 +216,55 @@ FROM sys_oper_log ORDER BY id;
 - 读方法标注 `readOnly = true` 优化数据库连接
 - `updateProduct` 的 检查→更新→回查 序列通过事务保证原子性
 - `SysOperLogServiceImpl` 已 `@Async` 异步执行，不参与业务事务
+
+---
+
+## Swagger / OpenAPI 审计
+
+### 技术选型
+
+| 项 | 值 |
+|----|-----|
+| 库 | `springdoc-openapi-starter-webmvc-ui:2.6.0` |
+| 适用版本 | Spring Boot 3.x（Jakarta Servlet，非 javax） |
+| JSON 文档路径 | `/api-docs`（自定义）及 `/v3/api-docs/**`（默认） |
+| Swagger UI 路径 | `/swagger-ui.html` |
+| 注解支持 | `swagger-annotations`（通过 springdoc 传递引入，已改为 compile scope） |
+
+### Security 放行检查
+
+| 路径 | 结果 |
+|------|------|
+| `/swagger-ui.html` | ✅ 已放行 |
+| `/swagger-ui/**` | ✅ 已放行 |
+| `/v3/api-docs/**` | ✅ 已放行 |
+| `/api-docs` | ✅ 已放行 |
+| `/api-docs/**` | ✅ 已放行 |
+| `/webjars/**` | ✅ 已放行 |
+
+**结论：** Security 白名单配置正确，所有 Swagger 资源可公开访问，无 401/403 阻断风险。
+
+### 修复状态
+
+| 维度 | 状态 | 说明 |
+|------|------|------|
+| 依赖完整性 | ✅ 已修复 | `springdoc` scope 从 `runtime` 改为 `compile`（`pom.xml:74`） |
+| 全局信息 | ✅ 已修复 | 创建 `OpenApiConfig.java`，含标题/版本/描述 + Bearer JWT 安全方案 |
+| Controller 注解 | ✅ 已修复 | `AuthController` + `ProductController` 添加了 `@Tag` 和 `@Operation` |
+| DTO/Entity 注解 | ✅ 已修复 | `LoginRequest`、`LoginResponse`、`Product` 添加了 `@Schema` |
+| application.yml | ✅ 正常 | 自定义路径和排序配置正确 |
+
+### 修改文件清单
+
+| 文件 | 修改内容 |
+|------|---------|
+| `pom.xml:74` | 移除 `<scope>runtime</scope>`，改为默认 compile |
+| `config/OpenApiConfig.java` | **新增** — OpenAPI 全局配置（Info + Bearer JWT SecurityScheme） |
+| `controller/AuthController.java` | 添加 `@Tag`(类级) + `@Operation`(3 个方法) |
+| `controller/ProductController.java` | 添加 `@Tag`(类级) + `@Operation`(4 个方法) |
+| `dto/LoginRequest.java` | 字段添加 `@Schema(description, example)` |
+| `dto/LoginResponse.java` | 字段添加 `@Schema(description, example)` |
+| `dao/Product.java` | 字段添加 `@Schema(description, example)` |
 
 ---
 

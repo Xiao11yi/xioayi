@@ -33,6 +33,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()  // 查询公开
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",   // 如果你还在使用默认路径
+                                "/api-docs",         // 自定义的文档路径
+                                "/api-docs/**",// 可能的分组路径
+                                "/webjars/**"
+                        ).permitAll()
+
 
 
                         .anyRequest().authenticated()
