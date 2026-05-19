@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>沙箱支付测试</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; }
+.card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+h2 { font-size: 18px; margin-bottom: 16px; color: #1677ff; }
+button { background: #1677ff; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 14px; }
+button:hover { background: #4096ff; }
+button:disabled { background: #ccc; cursor: not-allowed; }
+input { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; margin-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+th { background: #fafafa; font-weight: 600; }
+tr:hover { background: #f5f5f5; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.tag.pending { background: #fff7e6; color: #d46b08; }
+.tag.paid { background: #f6ffed; color: #389e0d; }
+.tag.expired { background: #fff1f0; color: #cf1322; }
+pre { background: #f6f8fa; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-height: 200px; }
+.status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.status-bar span { font-size: 14px; }
+.logo { color: #1677ff; font-size: 24px; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="status-bar">
+    <div class="logo">🏪 沙箱支付测试</div>
+    <span id="loginStatus">未登录</span>
+  </div>
+
+  <!-- 登录 -->
+  <div class="card" id="loginCard">
+    <h2>登录</h2>
+    <input id="username" value="admin" placeholder="用户名">
+    <input id="password" type="password" value="123456" placeholder="密码">
+    <button onclick="login()">登录</button>
+  </div>
+
+  <!-- 商品列表 -->
+  <div class="card" id="productCard" style="display:none">
+    <h2>选择商品下单</h2>
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>价格</th><th>库存</th><th></th></tr></thead>
+      <tbody id="productList"></tbody>
+    </table>
+  </div>
+
+  <!-- 订单信息 -->
+  <div class="card" id="orderCard" style="display:none">
+    <h2>订单信息</h2>
+    <div id="orderInfo"></div>
+    <div id="paySection" style="display:none; margin-top:12px;">
+      <button onclick="payOrder()" style="background:#52c41a; font-size:16px; padding:12px 24px;">💳 前往支付宝支付</button>
+      <p style="color:#999; font-size:12px; margin-top:8px;">点击后生成支付宝表单，自动跳转沙箱环境</p>
+    </div>
+  </div>
+
+  <!-- 支付宝表单容器 -->
+  <div id="alipayFormContainer" style="display:none;"></div>
+
+  <!-- 沙箱说明 -->
+  <div class="card" style="background:#fffbe6; border:1px solid #ffe58f;">
+    <h2 style="color:#d46b08;">⚠️ 沙箱测试说明</h2>
+    <ul style="font-size:13px; line-height:1.8; padding-left:16px;">
+      <li>点击"前往支付宝支付"后，<strong>不要扫描二维码</strong>，点击页面上方的 <strong>"登录账户付款"</strong></li>
+      <li>使用沙箱买家账号登录：<a href="https://open.alipay.com/develop/sandbox/account" target="_blank">前往沙箱账号页</a> 获取买家账号密码</li>
+      <li>如果显示二维码过期，刷新后点击"登录账户付款"即可</li>
+      <li>支付成功后自动回调需要内网穿透服务（natapp）保持在线</li>
+    </ul>
+  </div>
+
+  <!-- 日志 -->
+  <div class="card">
+    <h2>操作日志</h2>
+    <pre id="log">等待操作...</pre>
+  </div>
+</div>
+
+<script>
+const BASE = '';
+let TOKEN = '';
+let currentOrderNo = '';
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  el.textContent = `[${time}] ${msg}\n` + el.textContent;
+}
+
+async function api(method, path, body, auth = true) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (auth && TOKEN) opts.headers['Authorization'] = `Bearer ${TOKEN}`;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + path, opts);
+  const data = await res.json();
+  if (data.code !== 200) throw new Error(data.message || `HTTP ${res.status}`);
+  return data;
+}
+
+async function login() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  try {
+    const data = await api('POST', '/api/auth/login', { username, password }, false);
+    TOKEN = data.data.token;
+    document.getElementById('loginStatus').textContent = `已登录: ${data.data.username}`;
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('productCard').style.display = 'block';
+    log('登录成功');
+    loadProducts();
+  } catch (e) {
+    log('登录失败: ' + e.message);
+    alert('登录失败: ' + e.message);
+  }
+}
+
+async function loadProducts() {
+  try {
+    const data = await api('GET', '/api/products?page=1&size=10', null, false);
+    const list = document.getElementById('productList');
+    list.innerHTML = '';
+    data.data.records.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.id}</td><td><strong>${p.name}</strong></td><td>¥${p.price}</td><td>${p.stock}</td>
+        <td><button onclick="createOrder(${p.id},'${p.name}')">下单</button></td>`;
+      list.appendChild(tr);
+    });
+    log('加载商品列表成功');
+  } catch (e) {
+    log('加载商品失败: ' + e.message);
+  }
+}
+
+async function createOrder(productId, productName) {
+  currentOrderNo = '';
+  document.getElementById('orderCard').style.display = 'block';
+  document.getElementById('paySection').style.display = 'none';
+  document.getElementById('orderInfo').innerHTML = '<p>正在创建订单...</p>';
+  try {
+    const data = await api('POST', `/api/orders/product/${productId}`);
+    const order = data.data;
+    currentOrderNo = order.orderNo;
+    const expire = new Date(order.expireTime).toLocaleString();
+    document.getElementById('orderInfo').innerHTML = `
+      <table>
+        <tr><td style="width:80px">订单号</td><td><code>${order.orderNo}</code></td></tr>
+        <tr><td>商品</td><td>${order.productName}</td></tr>
+        <tr><td>金额</td><td><strong style="color:#cf1322;font-size:18px;">¥${order.amount}</strong></td></tr>
+        <tr><td>状态</td><td><span class="tag pending">待支付</span></td></tr>
+        <tr><td>过期时间</td><td>${expire}（30分钟内支付）</td></tr>
+      </table>`;
+    document.getElementById('paySection').style.display = 'block';
+    log(`订单创建成功: ${order.orderNo}, 金额 ¥${order.amount}`);
+  } catch (e) {
+    document.getElementById('orderInfo').innerHTML = `<p style="color:red">创建订单失败: ${e.message}</p>`;
+    log('创建订单失败: ' + e.message);
+  }
+}
+
+async function payOrder() {
+  if (!currentOrderNo) return;
+  try {
+    const data = await api('POST', `/api/orders/${currentOrderNo}/pay`);
+    log('获取支付表单成功');
+    const container = document.getElementById('alipayFormContainer');
+    container.innerHTML = data.data;
+    container.style.display = 'block';
+    const form = container.querySelector('form');
+    if (form) {
+      form.target = '_blank';
+      form.submit();
+      log('✅ 支付宝页面已在新窗口打开');
+      log('📌 关键步骤：点击"登录账户付款"，不要扫描二维码');
+      log('📌 用沙箱买家账号登录，完成支付');
+    } else {
+      if (data.data.startsWith('http')) {
+        window.open(data.data, '_blank');
+      }
+    }
+  } catch (e) {
+    log('获取支付表单失败: ' + e.message);
+    alert('支付失败: ' + e.message);
+  }
+}
+</script>
+</body>
+</html>
