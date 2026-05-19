@@ -11,3 +11,11 @@ VALUES
 
 -- 重置自增值，避免后续新增商品主键冲突
 ALTER TABLE `product` AUTO_INCREMENT = 100;
+
+INSERT IGNORE INTO `coupon` (`id`, `name`, `code`, `type`, `value`, `min_amount`, `max_amount`, `start_time`, `end_time`, `usage_limit`, `used_count`, `status`, `create_time`, `update_time`)
+VALUES
+(1, '新用户首单优惠', 'NEW50', 0, 20.00, 100.00, 50.00, NOW(), '2027-12-31 23:59:59', 100, 0, 0, NOW(), NOW()),
+(2, '618 大促券', '618SALE', 1, 30.00, 200.00, NULL, NOW(), '2026-06-30 23:59:59', 500, 10, 0, NOW(), NOW()),
+(3, '会员专享折扣', 'VIP10', 0, 10.00, 0.00, 100.00, NOW(), '2026-12-31 23:59:59', 0, 0, 0, NOW(), NOW());
+
+ALTER TABLE `coupon` AUTO_INCREMENT = 100;

@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()  // 查询公开
+                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/coupons/**").permitAll()  // 查询公开
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

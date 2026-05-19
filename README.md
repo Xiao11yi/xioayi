@@ -9,7 +9,7 @@ Spring Boot 3.5 认证 + 商品管理后端服务。
 | Spring Boot | 3.5.11 |
 | Java | 17 |
 | MySQL + Redis | — |
-| MyBatis-Plus | 3.5.10 |
+| MyBatis-Plus | 3.5.10（含 jsqlparser 分页） |
 | Spring Security + JWT | — |
 | springdoc-openapi | 2.8.12 |
 
@@ -52,9 +52,9 @@ src/main/java/com/olivia/xioayi/
 ├── annotation/     # @Log 注解
 ├── aspect/         # AOP 操作日志切面
 ├── common/         # 统一响应 + 全局异常处理
-├── config/         # Security + JWT + OpenAPI 配置
-├── controller/     # AuthController, ProductController
-├── dao/            # Product, SysOperLog, User 实体
+├── config/         # Security + JWT + OpenAPI + MyBatis-Plus 配置
+├── controller/     # Auth, Product, Coupon 控制器
+├── dao/            # Product, Coupon, SysOperLog, User 实体
 ├── dto/            # LoginRequest, LoginResponse
 ├── mapper/         # MyBatis-Plus Mapper
 ├── service/        # 业务逻辑
@@ -72,6 +72,11 @@ src/main/java/com/olivia/xioayi/
 | POST | `/api/products` | 新增商品 | 是 |
 | PUT | `/api/products/{id}` | 更新商品 | 是 |
 | DELETE | `/api/products/{id}` | 删除商品 | 是 |
+| GET | `/api/coupons` | 优惠券分页列表 | 否 |
+| GET | `/api/coupons/{id}` | 优惠券详情 | 否 |
+| POST | `/api/coupons` | 新增优惠券 | 是 |
+| PUT | `/api/coupons/{id}` | 更新优惠券 | 是 |
+| DELETE | `/api/coupons/{id}` | 删除优惠券 | 是 |
 
 ## License
 

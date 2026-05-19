@@ -28,6 +28,12 @@ public class ProductController {
         return ApiResponse.success(productService.listProducts(page, size));
     }
 
+    @Operation(summary = "查询商品详情", description = "公开接口，按 ID 查询商品，不存在则返回 404")
+    @GetMapping("/{id}")
+    public ApiResponse<Product> get(@PathVariable Long id) {
+        return ApiResponse.success(productService.getProductById(id));
+    }
+
     @Operation(summary = "新增商品", description = "需要登录，创建并返回新的商品信息")
     @Log(title = "商品管理", businessType = BusinessType.INSERT)
     @PostMapping

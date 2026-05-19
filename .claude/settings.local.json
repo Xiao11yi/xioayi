@@ -29,7 +29,18 @@
       "Bash(taskkill //F //PID 19376)",
       "Bash(pkill -9 -f java)",
       "Bash(taskkill //F //PID 7800)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(taskkill //F //IM java.exe)",
+      "Bash(./mvnw dependency:tree -Dincludes=com.baomidou:*)",
+      "Bash(jar tf *)",
+      "Bash(echo \"Total entries: $\\(jar tf C:/Users/48697/.m2/repository/com/baomidou/mybatis-plus-extension/3.5.10/mybatis-plus-extension-3.5.10.jar)",
+      "Read(//c/Users/48697/.m2/repository/com/baomidou/mybatis-plus-extension/3.5.10/**)",
+      "Read(//c/Users/48697/.m2/repository/com/baomidou/mybatis-plus-core/3.5.10/**)",
+      "Bash(unzip -l \"C:/Users/48697/.m2/repository/com/baomidou/mybatis-plus-extension/3.5.10/mybatis-plus-extension-3.5.10.jar\")",
+      "Bash(unzip -l \"C:/Users/48697/.m2/repository/com/baomidou/mybatis-plus-core/3.5.10/mybatis-plus-core-3.5.10.jar\")",
+      "Bash(./mvnw dependency:build-classpath -DincludeScope=compile -q)",
+      "Bash(./mvnw help:effective-settings -q)",
+      "Bash(./mvnw dependency:resolve -q)"
     ]
   }
 }
